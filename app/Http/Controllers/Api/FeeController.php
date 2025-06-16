@@ -119,6 +119,7 @@ class FeeController extends Controller
     }
 
 
+
     public function addFeeSlips(Request $request)
     {
         $validator = $this->validateFeeSlip($request);

@@ -106,6 +106,8 @@ class ClassController extends Controller
         ])->setStatusCode(201);
     }
 
+
+
     //------------------------------------------------------------------------------
     //*********************** private validation methods **************************|
     //------------------------------------------------------------------------------
@@ -119,6 +121,7 @@ class ClassController extends Controller
             'disc' => 'nullable|string|max:1000',
             'section_ids' => 'sometimes|array',
             'section_ids.*' => 'integer|exists:sections,id',
+            
         ],
         //Messages
         [

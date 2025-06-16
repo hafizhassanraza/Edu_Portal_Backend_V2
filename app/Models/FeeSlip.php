@@ -12,6 +12,7 @@ class FeeSlip extends Model
     protected $table = 'fee_slips';
     protected $fillable = [
         'fee_id',
+        'type',
         'student_id',
         'challan_number',
         'issue_date',

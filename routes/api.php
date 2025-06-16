@@ -18,6 +18,7 @@ use App\Http\Controllers\Api\FeeController;
 |
 */
 
+
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
@@ -30,10 +31,6 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     Route::put('/update/{id}', [ClassController::class, 'updateClass'])->name('classes.update');
     Route::delete('/delete/{id}', [ClassController::class, 'deleteClass'])->name('classes.delete');
 }); */
-
-
-
-
 
 
 
@@ -55,6 +52,7 @@ Route::get('pending-students', [StudentController::class, 'getPendingStudents'])
 Route::get('guardian-by-studentID/{student_id}', [StudentController::class, 'getGuardianByStudentID']);
 Route::post('add-guardian', [StudentController::class, 'addGuardian']);
 Route::post('add-enrollment', [StudentController::class, 'addEnrollment']);
+Route::post('add-extra', [StudentController::class, 'addExtra']);
 // Student routes End
 
 

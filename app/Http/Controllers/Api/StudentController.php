@@ -18,10 +18,15 @@ class StudentController extends Controller
 
 
 
-
     public function getPendingStudents()
     {
-        $students = Student::where('status', 'pending')->get();
+        $students = Student::where('status', 'pending')->with([
+            'guardian',
+            'extras',
+            'feeSlips' => function ($query) {
+                $query->where('type', 'admission')->latest()->limit(1);
+            }
+        ])->get();
 
         return response()->json([
             'students' => $students,
@@ -48,7 +53,6 @@ class StudentController extends Controller
         $validator = $this->validateStudent($request);
         if ($validator->fails()) return response()->json(['errors' => $validator->errors()], 422);
         
-
         $student = Student::create($validator->validated());
 
         return response()->json([
@@ -57,18 +61,36 @@ class StudentController extends Controller
         ], 201);
     }
 
+    
+
     public function addGuardian(Request $request)
     {
         $validator = $this->validateGuardian($request);
         if ($validator->fails()) return response()->json(['errors' => $validator->errors()], 422);
         
-
         $student = Student::find($request->student_id);
         $guardian = $student->guardian()->create($validator->validated());
 
         return response()->json([
             'message' => 'Guardian added successfully!',
             'guardian' => $guardian,
+            'student' => $student,
+        ], 201);
+
+    }
+
+    public function addExtra(Request $request)
+    {
+        $validator = $this->validateExtra($request);
+        if ($validator->fails()) return response()->json(['errors' => $validator->errors()], 422);
+
+        $student = Student::find($request->student_id);
+
+        $extra = $student->extras()->updateOrCreate($validator->validated());
+
+        return response()->json([
+            'message' => 'Extra information added successfully!',
+            'extra' => $extra,
             'student' => $student,
         ], 201);
     }
@@ -105,6 +127,24 @@ class StudentController extends Controller
     //------------------------------------------------------------------------------
     //*********************** private validation methods **************************|
     //------------------------------------------------------------------------------
+
+
+    
+    protected function validateExtra(Request $request)
+    {
+        return Validator::make($request->all(), [
+            'student_id' => 'required|exists:students,id',
+            'class_id' => 'required|exists:my_classes,id',
+            'hostel_assign' => 'nullable|string|max:255',
+            'transport_assign' => 'nullable|string|max:255',
+            'previous_school' => 'nullable|string|max:255',
+        ], [
+            'student_id.required' => 'The student ID is required.',
+            'student_id.exists' => 'The student does not exist.',
+            'class_id.required' => 'The class ID is required.',
+            'class_id.exists' => 'The class does not exist.'
+        ]);
+    }
 
     
     protected function validateEnrollment(Request $request)
