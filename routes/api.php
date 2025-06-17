@@ -56,7 +56,9 @@ Route::post('add-extra', [StudentController::class, 'addExtra']);
 // Student routes End
 
 
-// Fee Slip routes Start
+// Accounts routes Start
 Route::post('add-fee-slips', [FeeController::class, 'addFeeSlips']);
 Route::get('fee-slip-by-challan/{challan_no}', [FeeController::class, 'getFeeSlipByChallan']);
 Route::post('pay-fee-slip', [FeeController::class, 'payFeeSlip']);
+Route::post('add-fee-structure', [FeeController::class, 'addFeeStructure']);
+Route::get('fee-structures', [FeeController::class, 'getFeeStructures']);

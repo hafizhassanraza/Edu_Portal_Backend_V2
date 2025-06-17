@@ -46,8 +46,8 @@ class StudentController extends Controller
             'student' => $student,
         ]);
     }
-    
-    
+
+
     public function addStudent(Request $request)
     {
         $validator = $this->validateStudent($request);
@@ -61,7 +61,6 @@ class StudentController extends Controller
         ], 201);
     }
 
-    
 
     public function addGuardian(Request $request)
     {
