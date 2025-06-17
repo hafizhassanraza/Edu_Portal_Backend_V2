@@ -127,7 +127,7 @@ class FeeController extends Controller
 
     public function getChallans(Request $request)
     {
-        $validator = $this->validateGetChallans($request);
+        $validator = $this->validateFee($request);
         if ($validator->fails()) return response()->json(['errors' => $validator->errors()], 422);
         
         $fees = Fee::with('feeSlips')->where([
@@ -144,7 +144,7 @@ class FeeController extends Controller
         ]);
     }
 
-    protected function validateGetChallans(Request $request)
+    protected function validateFee(Request $request)
     {
         return Validator::make($request->all(), [
             'year' => 'required|integer|min:2000',
@@ -163,9 +163,8 @@ class FeeController extends Controller
             'type.in' => 'The fee type must be either monthly or admission.',
         ]);
     }
-
     
-
+    
     public function addFeeSlips(Request $request)
     {
         $validator = $this->validateFeeSlip($request);
