@@ -23,6 +23,10 @@ class FeeController extends Controller
     // --------------------------------------------------------------------------|
 
 
+
+
+
+
     public function getFeesByYearAndMonth(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -120,6 +124,48 @@ class FeeController extends Controller
 
 
 
+
+    public function getChallans(Request $request)
+    {
+        $validator = $this->validateGetChallans($request);
+        if ($validator->fails()) return response()->json(['errors' => $validator->errors()], 422);
+        
+        $fees = Fee::with('feeSlips')->where([
+            'year' => $request->year,
+            'month' => $request->month,
+            'class_id' => $request->class_id,
+            'type' => $request->type,
+            ])->get();
+
+        $feeSlips = $fees->flatMap(function ($fee) { return $fee->feeSlips; })->values();
+
+        return response()->json([
+            'fee_slips' => $feeSlips
+        ]);
+    }
+
+    protected function validateGetChallans(Request $request)
+    {
+        return Validator::make($request->all(), [
+            'year' => 'required|integer|min:2000',
+            'month' => 'required|string',
+            'class_id' => 'required|exists:my_classes,id',
+            'type' => 'required|in:monthly,admission',
+        ], [
+            'year.required' => 'The year is required.',
+            'year.integer' => 'The year must be an integer.',
+            'year.min' => 'The year must be at least 2000.',
+            'month.required' => 'The month is required.',
+            'month.string' => 'The month must be a string.',
+            'class_id.required' => 'The class ID is required.',
+            'class_id.exists' => 'The selected class does not exist.',
+            'type.required' => 'The fee type is required.',
+            'type.in' => 'The fee type must be either monthly or admission.',
+        ]);
+    }
+
+    
+
     public function addFeeSlips(Request $request)
     {
         $validator = $this->validateFeeSlip($request);
@@ -137,6 +183,9 @@ class FeeController extends Controller
             $challan_number++; 
 
             $slip['challan_number'] = $challan_number; 
+
+            $slip['type'] = $data['type']; // Ensure 'type' is set for each slip
+
             $slip = $this->calculateTotalAndPayable($slip, $isMonthly); 
 
             $createdFeeSlips[] = $fee->feeSlips()->create($slip);
