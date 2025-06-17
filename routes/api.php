@@ -64,3 +64,40 @@ Route::post('add-fee-structure', [FeeController::class, 'addFeeStructure']);
 Route::get('fee-structures', [FeeController::class, 'getFeeStructures']);
 Route::post('get-Fee-Slips', [FeeController::class, 'getFeeSlips']);
 Route::post('fees-summary', [FeeController::class, 'getFeesSummary']);
+Route::post('expire-Fee-Slips', [FeeController::class, 'expireFeeSlips']);
+
+
+
+/* {
+
+    "month": "May",
+    "year": "2025",
+    "type": "admission",
+    "total_challans": 2,
+    "paid_count": 2,
+    "unpaid_count": 0,
+    "partially_paid_count": 0,
+    "expired_count": 0,
+    "sum_of_paid": 10000,
+    "sum_of_unpaid": 0,
+    "sum_of_partially_paid": 0,
+    "sum_of_expire": 0,
+    "fees": [
+        {
+            "fee_id": 2,
+            "class_id": 5,
+            "section_id": 5,
+            "class_name": "6th",
+            "section_name": "E",
+            "total_challans": 2,
+            "paid_count": 2,
+            "unpaid_count": 0,
+            "partially_paid_count": 0,
+            "expired_count": 0,
+            "sum_of_paid": 10000,
+            "sum_of_unpaid": 0,
+            "sum_of_partially_paid": 0,
+            "sum_of_expire": 0,
+        }
+    ]
+} */
