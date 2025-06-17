@@ -27,7 +27,7 @@ class FeeController extends Controller
 
 
 
-    public function getFeesByYearAndMonth(Request $request)
+    /* public function getFeesByYearAndMonth(Request $request)
     {
         $validator = Validator::make($request->all(), [
             'year' => 'required|integer|min:2000',
@@ -52,10 +52,10 @@ class FeeController extends Controller
         return response()->json([
             'fees' => $fees
         ]);
-    }
+    } */
 
 
-    public function getPendingFeeSlips(Request $request)
+    /* public function getPendingFeeSlips(Request $request)
     {
         $query = FeeSlip::with('student')->where('status', '!=', 'paid');
 
@@ -76,7 +76,7 @@ class FeeController extends Controller
         return response()->json([
             'pending_fee_slips' => $pendingFeeSlips
         ]);
-    }
+    } */
 
     public function getFeeSlipByChallan($challanNumber)
     {
@@ -125,9 +125,28 @@ class FeeController extends Controller
 
 
 
-    public function getChallans(Request $request)
+    public function getFeesSummary(Request $request)
     {
-        $validator = $this->validateFee($request);
+        $validator = $this->validateGetFeesSummary($request);
+        if ($validator->fails()) return response()->json(['errors' => $validator->errors()], 422);
+
+        $fees = Fee::where([
+            'year' => $request->year,
+            'month' => $request->month,
+            'type' => $request->type,
+        ])->get();
+
+        return response()->json([
+            'fees' => $fees
+        ]);
+    }
+
+
+    
+
+    public function getFeeSlips(Request $request)
+    {
+        $validator = $this->validateGetFeeSlips($request);
         if ($validator->fails()) return response()->json(['errors' => $validator->errors()], 422);
         
         $fees = Fee::with('feeSlips')->where([
@@ -143,28 +162,8 @@ class FeeController extends Controller
             'fee_slips' => $feeSlips
         ]);
     }
+    
 
-    protected function validateFee(Request $request)
-    {
-        return Validator::make($request->all(), [
-            'year' => 'required|integer|min:2000',
-            'month' => 'required|string',
-            'class_id' => 'required|exists:my_classes,id',
-            'type' => 'required|in:monthly,admission',
-        ], [
-            'year.required' => 'The year is required.',
-            'year.integer' => 'The year must be an integer.',
-            'year.min' => 'The year must be at least 2000.',
-            'month.required' => 'The month is required.',
-            'month.string' => 'The month must be a string.',
-            'class_id.required' => 'The class ID is required.',
-            'class_id.exists' => 'The selected class does not exist.',
-            'type.required' => 'The fee type is required.',
-            'type.in' => 'The fee type must be either monthly or admission.',
-        ]);
-    }
-    
-    
     public function addFeeSlips(Request $request)
     {
         $validator = $this->validateFeeSlip($request);
@@ -407,6 +406,43 @@ class FeeController extends Controller
         ]);
     }
 
+
+    protected function validateGetFeeSlips(Request $request)
+    {
+        return Validator::make($request->all(), [
+            'year' => 'required|integer|min:2000',
+            'month' => 'required|string',
+            'class_id' => 'required|exists:my_classes,id',
+            'type' => 'required|in:monthly,admission',
+        ], [
+            'year.required' => 'The year is required.',
+            'year.integer' => 'The year must be an integer.',
+            'year.min' => 'The year must be at least 2000.',
+            'month.required' => 'The month is required.',
+            'month.string' => 'The month must be a string.',
+            'class_id.required' => 'The class ID is required.',
+            'class_id.exists' => 'The selected class does not exist.',
+            'type.required' => 'The fee type is required.',
+            'type.in' => 'The fee type must be either monthly or admission.',
+        ]);
+    }
+
+    protected function validateGetFeesSummary(Request $request)
+    {
+        return Validator::make($request->all(), [
+            'year' => 'required|integer|min:2000',
+            'month' => 'required|string',
+            'type' => 'required|in:monthly,admission',
+        ], [
+            'year.required' => 'The year is required.',
+            'year.integer' => 'The year must be an integer.',
+            'year.min' => 'The year must be at least 2000.',
+            'month.required' => 'The month is required.',
+            'month.string' => 'The month must be a string.',
+            'type.required' => 'The fee type is required.',
+            'type.in' => 'The fee type must be either monthly or admission.',
+        ]);
+    }
 
 
     // -----------------------------Finders---------------------------------------------|

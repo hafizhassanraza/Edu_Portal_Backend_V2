@@ -62,4 +62,5 @@ Route::get('fee-slip-by-challan/{challan_no}', [FeeController::class, 'getFeeSli
 Route::post('pay-fee-slip', [FeeController::class, 'payFeeSlip']);
 Route::post('add-fee-structure', [FeeController::class, 'addFeeStructure']);
 Route::get('fee-structures', [FeeController::class, 'getFeeStructures']);
-Route::post('get-challans', [FeeController::class, 'getChallans']);
+Route::post('get-Fee-Slips', [FeeController::class, 'getFeeSlips']);
+Route::post('fees-summary', [FeeController::class, 'getFeesSummary']);
