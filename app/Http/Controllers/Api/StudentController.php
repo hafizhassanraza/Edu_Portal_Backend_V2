@@ -33,6 +33,23 @@ class StudentController extends Controller
         ]);
     }
 
+    public function getPendingStudentById($id)
+    {
+        $student = Student::where('id', $id)->where('status', 'pending')->with([
+            'guardian',
+            'extras',
+            'feeSlips' => function ($query) {
+                $query->where('type', 'admission')->latest()->limit(1);
+            }
+        ])->first();
+
+        if (!$student) { return response()->json(['error' => 'Pending student not found.'], 404);}
+
+        return response()->json([
+            'student' => $student,
+        ]);
+    }
+
 
     public function getGuardianByStudentID($student_id)
     {
