@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\ClassController;
 use App\Http\Controllers\Api\StudentController;
 use App\Http\Controllers\Api\FeeController;
+use App\Http\Controllers\Api\AttendanceController;
 
 /*
 |--------------------------------------------------------------------------
@@ -53,7 +54,17 @@ Route::get('guardian-by-studentID/{student_id}', [StudentController::class, 'get
 Route::post('add-guardian', [StudentController::class, 'addGuardian']);
 Route::post('add-enrollment', [StudentController::class, 'addEnrollment']);
 Route::post('add-extra', [StudentController::class, 'addExtra']);
+Route::post('students-by-section', [StudentController::class, 'getStudentsByClassAndSection']);
+Route::get('student-by-reg-number/{reg_number}', [StudentController::class, 'getStudentByRegNumber']);
+Route::get('student-by-id/{id}', [StudentController::class, 'getStudentById']);
 // Student routes End
+
+
+// Attendance routes Start
+Route::post('attendance/store', [AttendanceController::class, 'store']);
+Route::post('attendance/by-date', [AttendanceController::class, 'getByDate']);
+
+// Attendance routes End
 
 
 // Accounts routes Start

@@ -8,16 +8,52 @@ use Illuminate\Database\Eloquent\Model;
 class Section extends Model
 {
     use HasFactory;
-
-
-
     protected $table = 'sections';
+
+
+
+
+
+
+
+
+
+
 
     protected $fillable = [
         'name',
         'status',
         'disc'
     ];
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
+
+
+    public function classes()
+    {
+        return $this->belongsTo(MyClass::class, 'class_id');
+    }
+
+
+
     protected $casts = [
         'status' => 'string',
     ];
@@ -25,10 +61,7 @@ class Section extends Model
         'status' => 'available',
     ];
     //Relationships
-    public function classes()
-    {
-        return $this->belongsTo(MyClass::class, 'class_id');
-    }
+
     public function students()
     {
         return $this->hasManyThrough(

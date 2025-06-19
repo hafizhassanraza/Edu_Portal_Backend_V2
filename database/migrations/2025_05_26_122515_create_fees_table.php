@@ -15,9 +15,8 @@ return new class extends Migration
     {
         Schema::create('fees', function (Blueprint $table) {
             $table->id();
-
+            $table->foreignId('section_id')->nullable()->constrained('sections'); // nullable to allow existing records without a section
             $table->foreignId('class_id')->constrained('my_classes')->onDelete('cascade');
-
             $table->string('month');
             $table->string('year');
             $table->string('type');// e.g., admission, monthly, fine, etc.

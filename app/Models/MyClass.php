@@ -15,14 +15,41 @@ class MyClass extends Model
         'status',
         'disc',
     ];
-    protected $attributes = [
-        'status' => 'available', // Default status
-    ];
+
     //Relationships
     public function students()
     {
         return $this->belongsToMany(Student::class, 'enrollments', 'class_id', 'student_id');
     }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    protected $attributes = [
+        'status' => 'available', // Default status
+    ];
+
+
+
+
+
     public function sections()
     {
         // This method defines a many-to-many relationship with the Section model
@@ -33,6 +60,14 @@ class MyClass extends Model
             'section_id'       // Foreign key on pivot table for related model
         );
     }
+
+
+
+
+
+
+
+    
     public function feeStructure()
     {
         return $this->hasOne(FeeStructure::class, 'class_id');

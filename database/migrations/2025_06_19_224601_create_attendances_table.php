@@ -13,9 +13,12 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::table('fees', function (Blueprint $table) {
-            //
-            $table->foreignId('section_id')->nullable()->constrained('sections'); // nullable to allow existing records without a section
+        Schema::create('attendances', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('class_id')->constrained('my_classes')->onDelete('cascade');
+            $table->foreignId('section_id')->constrained('sections')->onDelete('cascade');            
+            $table->date('date');
+            $table->timestamps();
         });
     }
 
@@ -26,8 +29,6 @@ return new class extends Migration
      */
     public function down()
     {
-        Schema::table('fees', function (Blueprint $table) {
-            //
-        });
+        Schema::dropIfExists('attendances');
     }
 };

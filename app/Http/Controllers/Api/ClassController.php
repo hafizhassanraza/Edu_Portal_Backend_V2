@@ -16,21 +16,32 @@ class ClassController extends Controller
 
 
 
+    
+
+
     public function getSections()
     {
+
         $sections = Section::all();
         return response()->json([
             'sections' => $sections
         ]);
     }
 
+
+
     public function getClasses()
     {
         $classes = MyClass::with('sections')->get();
+
         return response()->json([
             'classes' => $classes
         ]);
     }
+
+
+
+
 
     public function getClassByID($id)
     {
