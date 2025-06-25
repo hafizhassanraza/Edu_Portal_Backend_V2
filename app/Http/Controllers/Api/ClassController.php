@@ -115,7 +115,11 @@ class ClassController extends Controller
             'message' => 'Class Created Successfully!',
             'class' => $class,
         ])->setStatusCode(201);
+
+        
     }
+
+
 
 
 

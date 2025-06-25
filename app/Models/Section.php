@@ -27,25 +27,7 @@ class Section extends Model
     ];
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     
-
 
     public function classes()
     {
@@ -78,6 +60,22 @@ class Section extends Model
         return $this->hasMany(Enrollment::class, 'section_id');
     }
 
+
+    public function sectionSubjects()
+    {
+        return $this->hasMany(SectionSubject::class, 'section_id');
+    }
+    public function subjects()
+    {
+        return $this->hasManyThrough(
+            Subject::class,
+            SectionSubject::class,
+            'section_id',   // Foreign key on section_subjects table...
+            'id',           // Foreign key on subjects table...
+            'id',           // Local key on sections table...
+            'subject_id'    // Local key on section_subjects table...
+        );
+    }
 
 
 }

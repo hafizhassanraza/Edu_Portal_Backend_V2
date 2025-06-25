@@ -21,89 +21,6 @@ class AttendanceController extends Controller
     
 
 
-    public function store(Request $request)
-    {
-        $validator = $this->validateAttendance($request);
-        if ($validator->fails()) return response()->json(['errors' => $validator->errors()], 422);
-        
-
-        $data = $request->all();
-
-        // Check if class_id exists
-        if (!MyClass::where('id', $data['class_id'])->exists()) {
-            return response()->json(['errors' => ['class_id' => ['The selected class does not exist.']]], 422);
-        }
-
-        // Check if section_id exists
-        if (!Section::where('id', $data['section_id'])->exists()) {
-            return response()->json(['errors' => ['section_id' => ['The selected section does not exist.']]], 422);
-        }
-
-        $attendance = Attendance::where([
-            'date' => $data['date'],
-            'class_id' => $data['class_id'],
-            'section_id' => $data['section_id'],
-        ])->first();
-
-        if (!$attendance) {
-            $attendance = Attendance::create([
-                'date' => $data['date'],
-                'class_id' => $data['class_id'],
-                'section_id' => $data['section_id'],
-            ]);
-        }
-
-        $createdRecords = [];
-        foreach ($data['details'] as $detail) {
-            $createdRecords[] = AttendanceRecord::create([
-                'attendance_id' => $attendance->id,
-                'student_id' => $detail['student_id'],
-                'status' => $detail['status'],
-            ]);
-        }
-
-        return response()->json([
-            'message' => 'Attendance recorded successfully',
-            'attendance_id' => $attendance->id,
-            'records' => $createdRecords,
-        ], 201);
-    }
-
-    public function getByDate(Request $request)
-    {
-        $validator = Validator::make($request->all(), [
-            'date' => 'required|date_format:d/m/y',
-        ], [
-            'date.required' => 'The attendance date is required.',
-            'date.date_format' => 'The attendance date must be in the format dd/mm/yy.',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
-        }
-
-        $attendance = Attendance::where('date', $request->input('date'))->get();
-
-        $attendance = $attendance->map(function ($att) {
-            $present = AttendanceRecord::where('attendance_id', $att->id)->where('status', 'present')->count();
-            $absent = AttendanceRecord::where('attendance_id', $att->id)->where('status', 'absent')->count();
-            $leave = AttendanceRecord::where('attendance_id', $att->id)->where('status', 'leave')->count();
-            $total = AttendanceRecord::where('attendance_id', $att->id)->count();
-
-            $att->present = $present;
-            $att->absent = $absent;
-            $att->leave = $leave;
-            $att->total = $total;
-            return $att;
-        });
-
-        return response()->json([
-            'attendances' => $attendance
-        ]);
-
-
-    }
-
     public function index(Request $request)
     {
         $query = Attendance::with(['records', 'records.student']);
@@ -127,13 +44,105 @@ class AttendanceController extends Controller
 
 
 
+    public function recordsByAttendanceId(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'id' => 'required|integer|exists:attendances,id',
+        ]);
+
+        if ($validator->fails()) return response()->json(['errors' => $validator->errors()], 422);
+
+        $attendance = Attendance::with(['attendanceRecords', 'students'])->find($request->input('id'));
+
+        return response()->json([
+            'attendance' => $attendance,
+            'records' => $attendance ,
+        ]);
+    }
 
 
-        // Validator function for attendance
+
+    public function getByDate(Request $request)
+    {
+        $validator = $this->validateGetByDate($request);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        $attendance = Attendance::where('date', $request->input('date'))->get();
+
+        $attendance = $attendance->map(function ($att) {
+            $present = AttendanceRecord::where('attendance_id', $att->id)->where('status', 'present')->count();
+            $absent = AttendanceRecord::where('attendance_id', $att->id)->where('status', 'absent')->count();
+            $leave = AttendanceRecord::where('attendance_id', $att->id)->where('status', 'leave')->count();
+            $total = AttendanceRecord::where('attendance_id', $att->id)->count();
+
+            $att->present = $present;
+            $att->absent = $absent;
+            $att->leave = $leave;
+            $att->total = $total;
+            return $att;
+        });
+
+        return response()->json([
+            'attendances' => $attendance,
+        ]);
+    }
+
+
+
+     public function store(Request $request)
+    {
+        $validator = $this->validateAttendance($request);
+        if ($validator->fails()) return response()->json(['errors' => $validator->errors()], 422);
+        $data = $request->all();
+
+
+        $attendance = Attendance::firstOrNew([
+            'date' => $data['date'],
+            'class_id' => $data['class_id'],
+            'section_id' => $data['section_id'],
+        ]);
+
+        if ($attendance->exists) AttendanceRecord::where('attendance_id', $attendance->id)->delete();
+        else $attendance->save();
+
+        $createdRecords = [];
+        foreach ($data['details'] as $detail) {
+            $createdRecords[] = AttendanceRecord::create([
+                'attendance_id' => $attendance->id,
+                'student_id' => $detail['student_id'],
+                'status' => $detail['status'],
+            ]);
+        }
+
+        return response()->json([
+            'message' => 'Attendance recorded successfully',
+            'attendance_id' => $attendance->id,
+            'records' => $createdRecords,
+        ], 201);
+    }
+
+
+
+    // Validator function for getByDate
+    protected function validateGetByDate(Request $request)
+    {
+        return Validator::make($request->all(), [
+            'date' => 'required|date_format:Y-m-d',
+        ], [
+            'date.required' => 'The attendance date is required.',
+            'date.date_format' => 'The attendance date must be in the format Y-m-d (e.g., 2025-12-05).',
+        ]);
+    }
+
+
+    // Validator function for attendance
     protected function validateAttendance(Request $request)
     {
         return Validator::make($request->all(), [
-            'date' => 'required|date_format:d/m/y',
+            'date' => 'required|date_format:Y-m-d',
             'class_id' => 'required|integer',
             'section_id' => 'required|integer',
             'details' => 'required|array',
@@ -141,7 +150,7 @@ class AttendanceController extends Controller
             'details.*.status' => 'required|string',
         ], [
             'date.required' => 'The attendance date is required.',
-            'date.date_format' => 'The attendance date must be in the format dd/mm/yy.',
+            'date.date_format' => 'The attendance date must be in the format Y-m-d (e.g., 2025-12-05).',
             'class_id.required' => 'The class is required.',
             'class_id.integer' => 'The class ID must be an integer.',
             'section_id.required' => 'The section is required.',
@@ -154,5 +163,7 @@ class AttendanceController extends Controller
             'details.*.status.string' => 'Each status must be a string.',
         ]);
     }
+
+
 
 }

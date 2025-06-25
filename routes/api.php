@@ -7,6 +7,8 @@ use App\Http\Controllers\Api\ClassController;
 use App\Http\Controllers\Api\StudentController;
 use App\Http\Controllers\Api\FeeController;
 use App\Http\Controllers\Api\AttendanceController;
+use App\Http\Controllers\Api\AcademicController;
+use App\Http\Controllers\Api\EmployeeController;
 
 /*
 |--------------------------------------------------------------------------
@@ -63,6 +65,7 @@ Route::get('student-by-id/{id}', [StudentController::class, 'getStudentById']);
 // Attendance routes Start
 Route::post('attendance/store', [AttendanceController::class, 'store']);
 Route::post('attendance/by-date', [AttendanceController::class, 'getByDate']);
+Route::post('attendance/records/by-id', [AttendanceController::class, 'recordsByAttendanceId']);
 
 // Attendance routes End
 
@@ -77,5 +80,21 @@ Route::post('get-Fee-Slips', [FeeController::class, 'getFeeSlips']);
 Route::post('fees-summary', [FeeController::class, 'getFeesSummary']);
 Route::post('expire-Fee-Slips', [FeeController::class, 'expireFeeSlips']);
 Route::get('pending-student/{id}', [StudentController::class, 'getPendingStudentById']);
+// Accounts routes End
 
+// Academic routes Start
+Route::post('subject/add', [AcademicController::class, 'addSubject']);
+Route::get('subject/get', [AcademicController::class, 'getSubjects']);
+Route::post('subject/assignment/add', [AcademicController::class, 'subjectAssignment']);
+Route::post('subject/assignment/get', [AcademicController::class, 'getAssignedSubjectsBySection']);
+// Academic routes End
+
+// Employee routes Start
+Route::post('employee/add', [EmployeeController::class, 'addEmployee']);
+Route::get('employees/get', [EmployeeController::class, 'getEmployees']);
+Route::get('employees/get-pending', [EmployeeController::class, 'getPendingEmployees']);
+Route::post('employee/qualification/add', [EmployeeController::class, 'addQualification']);
+Route::post('employee/qualification/get', [EmployeeController::class, 'getQualifications']);
+Route::get('teachers/get', [EmployeeController::class, 'getTeachers']);
+// Employee routes End
 

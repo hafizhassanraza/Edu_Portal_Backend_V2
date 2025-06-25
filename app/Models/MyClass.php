@@ -85,4 +85,18 @@ class MyClass extends Model
         );
     }
 
+    public function sectionSubjects()
+    {
+        return $this->hasMany(SectionSubject::class, 'class_id');
+    }
+    public function subjects()
+    {
+        return $this->belongsToMany(
+            Subject::class,
+            'class_subjects', // Pivot table name
+            'class_id',       // Foreign key on pivot table for this model
+            'subject_id'      // Foreign key on pivot table for related model
+        );
+    }
+
 }
