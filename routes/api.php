@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\FeeController;
 use App\Http\Controllers\Api\AttendanceController;
 use App\Http\Controllers\Api\AcademicController;
 use App\Http\Controllers\Api\EmployeeController;
+use App\Http\Controllers\Api\ExamController;
 
 /*
 |--------------------------------------------------------------------------
@@ -97,4 +98,10 @@ Route::post('employee/qualification/add', [EmployeeController::class, 'addQualif
 Route::post('employee/qualification/get', [EmployeeController::class, 'getQualifications']);
 Route::get('teachers/get', [EmployeeController::class, 'getTeachers']);
 // Employee routes End
+
+
+// Exam routes Start
+Route::post('exam/add', [ExamController::class, 'store']);
+Route::post('exam/get', [ExamController::class, 'index']);
+Route::post('exam/records/by-id', [ExamController::class, 'getResultRecordsByResultId']);
 

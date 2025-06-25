@@ -65,6 +65,11 @@ class Student extends Model
         return $this->hasMany(FeeSlip::class, 'student_id')->where('type', 'admission');
     }
 
+    public function resultRecords()
+    {
+        return $this->hasMany(ResultRecord::class, 'student_id');
+    }
+
 
 
 
