@@ -92,65 +92,71 @@ class FeeController extends Controller
         $validator = $this->validatePayFeeSlip($request);
         if ($validator->fails()) return response()->json(['errors' => $validator->errors()], 422);
 
-        $feeSlip = FeeSlip::find($request->input('id'));
-        if (!$feeSlip) return response()->json(['error' => 'Fee slip not found.'], 404);
-
-        if ($feeSlip->status === 'expire') {
-            return response()->json(['error' => 'This Challan is not payable (expire).'], 400);
+        $feeSlip = FeeSlip::find($request->id);
+        if (!$feeSlip || in_array($feeSlip->status, ['expire', 'paid', 'partially_paid'])) {
+            return response()->json(['error' => 'This Challan is not payable.'], 400);
         }
 
-        $amount = $request->input('amount');
-        $alreadyPaid = $feeSlip->paid_amount ?? 0;
-        $totalPaid = $alreadyPaid + $amount;
-
-        if ($totalPaid > $feeSlip->payable) {
-            return response()->json(['error' => 'Paid amount exceeds payable amount.'], 400);
-        }
-
-        $feeSlip->paid_amount = $totalPaid;
-        if ($totalPaid == $feeSlip->payable) {
-            $feeSlip->status = 'paid';
-        } elseif ($totalPaid > 0) {
-            $feeSlip->status = 'partially_paid';
-        } else {
-            $feeSlip->status = 'unpaid';
-        }
+        $amount = $request->amount;
+        $payable = $feeSlip->payable ?? 0;
+        $feeSlip->receiving_date = now();
+        $feeSlip->paid_amount = $amount;
+        $feeSlip->remaining_amount = $payable - $amount;
+        $feeSlip->status = ($amount >= $payable) ? 'paid' : 'partially_paid';
         $feeSlip->save();
 
+        $account = Account::where('student_id', $feeSlip->student_id)->first();
+        if ($account) {
+            $account->dues = ($feeSlip->status === 'paid') ? 0 : $payable - $amount;
+            $account->fine = 0;
+            $account->save();
+        }
+
         return response()->json([
-            'message' => 'Payment receive successfully.',
+            'message' => 'Payment received successfully.',
             'fee_slip' => $feeSlip
         ]);
     }
 
 
+    public function expireFeeSlips(Request $request)
+    {
+        $validator = $this->validateGetFeesSummary($request);
+        if ($validator->fails()) return response()->json(['errors' => $validator->errors()], 422);
+
+        if ($request->type !== 'monthly') return response()->json(['message' => 'Expire operation is only applicable for monthly fees.'], 400);
+        
+
+        // Get fees by year, month, type
+        $fees = Fee::where(['year' => $request->year,'month' => $request->month,'type' => $request->type,])->get();
+        if ($fees->isEmpty()) return response()->json(['message' => 'No fees found for the given criteria.'], 404);
+        
+        foreach ($fees as $fee) {
+            foreach ($fee->feeSlips()->where('status', 'unpaid')->get() as $slip) {
+            $slip->update(['status' => 'expire']);
+            Account::where('student_id', $slip->student_id)->update(['dues' => $slip->payable ?? 0]);
+            }
+        }
+
+        return response()->json(['message' => 'Unpaid fee slips expired and Dues updated.'], 200);
+    }
 
 
-    
 
 
-               // $table->foreignId('section_id')->nullable()->constrained('sections'); // nullable to allow existing records without a section
+
+
     public function getFeesSummary(Request $request)
     {
         $validator = $this->validateGetFeesSummary($request);
         if ($validator->fails()) return response()->json(['errors' => $validator->errors()], 422);
 
-        $fees = Fee::with([
-            'myClass:id,name',
-            'section:id,name',
-            'feeSlips' => function ($q) {
-                $q->select('id', 'fee_id', 'status', 'paid_amount', 'payable');
-            }
-        ])->withCount([
-            'feeSlips as paid_count' => function ($q) { $q->where('status', 'paid'); },
-            'feeSlips as unpaid_count' => function ($q) { $q->where('status', 'unpaid'); },
-            'feeSlips as partially_paid_count' => function ($q) { $q->where('status', 'partially_paid'); },
-            'feeSlips as expired_count' => function ($q) { $q->where('status', 'expire'); },
-        ])->where([
-            'year' => $request->year,
-            'month' => $request->month,
-            'type' => $request->type,
-        ])->get();
+        $fees = Fee::with(['myClass:id,name', 'section:id,name', 'feeSlips:id,fee_id,status,paid_amount,payable'])
+            ->where([
+                'year' => $request->year,
+                'month' => $request->month,
+                'type' => $request->type,
+            ])->get();
 
         $summary = [
             'month' => $request->month,
@@ -169,52 +175,47 @@ class FeeController extends Controller
         ];
 
         foreach ($fees as $fee) {
-            $feeSummary = [
-                'fee_id' => $fee->id,
-                'class_id' => $fee->class_id,
-                'class_name' => $fee->myClass->name ?? null,
-                'section_id' => ($request->type === 'admission') ? null : ($fee->section_id ?? null),
-                'section_name' => ($request->type === 'admission')
-                    ? null
-                    : ($fee->section->name ?? null),
-                'total_challans' => $fee->feeSlips->count(),
-                'paid_count' => $fee->paid_count,
-                'unpaid_count' => $fee->unpaid_count,
-                'partially_paid_count' => $fee->partially_paid_count,
-                'expired_count' => $fee->expired_count,
-                'sum_of_paid' => 0,
-                'sum_of_unpaid' => 0,
-                'sum_of_partially_paid' => 0,
-                'sum_of_expire' => 0,
+            $counts = [
+                'paid' => 0, 'unpaid' => 0, 'partially_paid' => 0, 'expire' => 0,
+                'sum_paid' => 0, 'sum_unpaid' => 0, 'sum_partially_paid' => 0, 'sum_expire' => 0
             ];
-
             foreach ($fee->feeSlips as $slip) {
                 $summary['total_challans']++;
                 switch ($slip->status) {
                     case 'paid':
-                        $feeSummary['sum_of_paid'] += $slip->paid_amount ?? 0;
-                        $summary['sum_of_paid'] += $slip->paid_amount ?? 0;
-                        $summary['paid_count']++;
+                        $counts['paid']++; $counts['sum_paid'] += $slip->paid_amount ?? 0;
+                        $summary['paid_count']++; $summary['sum_of_paid'] += $slip->paid_amount ?? 0;
                         break;
                     case 'unpaid':
-                        $feeSummary['sum_of_unpaid'] += $slip->payable ?? 0;
-                        $summary['sum_of_unpaid'] += $slip->payable ?? 0;
-                        $summary['unpaid_count']++;
+                        $counts['unpaid']++; $counts['sum_unpaid'] += $slip->payable ?? 0;
+                        $summary['unpaid_count']++; $summary['sum_of_unpaid'] += $slip->payable ?? 0;
                         break;
                     case 'partially_paid':
-                        $feeSummary['sum_of_partially_paid'] += $slip->paid_amount ?? 0;
-                        $summary['sum_of_partially_paid'] += $slip->paid_amount ?? 0;
-                        $summary['partially_paid_count']++;
+                        $counts['partially_paid']++; $counts['sum_partially_paid'] += $slip->paid_amount ?? 0;
+                        $summary['partially_paid_count']++; $summary['sum_of_partially_paid'] += $slip->paid_amount ?? 0;
                         break;
                     case 'expire':
-                        $feeSummary['sum_of_expire'] += $slip->payable ?? 0;
-                        $summary['sum_of_expire'] += $slip->payable ?? 0;
-                        $summary['expired_count']++;
+                        $counts['expire']++; $counts['sum_expire'] += $slip->payable ?? 0;
+                        $summary['expired_count']++; $summary['sum_of_expire'] += $slip->payable ?? 0;
                         break;
                 }
             }
-
-            $summary['fees'][] = $feeSummary;
+            $summary['fees'][] = [
+                'fee_id' => $fee->id,
+                'class_id' => $fee->class_id,
+                'class_name' => $fee->myClass->name ?? null,
+                'section_id' => $request->type === 'admission' ? null : ($fee->section_id ?? null),
+                'section_name' => $request->type === 'admission' ? null : ($fee->section->name ?? null),
+                'total_challans' => $fee->feeSlips->count(),
+                'paid_count' => $counts['paid'],
+                'unpaid_count' => $counts['unpaid'],
+                'partially_paid_count' => $counts['partially_paid'],
+                'expired_count' => $counts['expire'],
+                'sum_of_paid' => $counts['sum_paid'],
+                'sum_of_unpaid' => $counts['sum_unpaid'],
+                'sum_of_partially_paid' => $counts['sum_partially_paid'],
+                'sum_of_expire' => $counts['sum_expire'],
+            ];
         }
 
         return response()->json($summary);
@@ -224,35 +225,7 @@ class FeeController extends Controller
 
 
 
-    public function expireFeeSlips(Request $request)
-    {
-        $validator = $this->validateGetFeesSummary($request);
-        if ($validator->fails()) return response()->json(['errors' => $validator->errors()], 422);
 
-        // Get fees by year, month, type
-        $fees = Fee::where(['year' => $request->year,'month' => $request->month,'type' => $request->type,])->get();
-
-        if ($fees->isEmpty()) return response()->json(['message' => 'No fees found for the given criteria.'], 404);
-        
-
-        foreach ($fees as $fee) {
-            $feeSlips = $fee->feeSlips()->where('status', 'unpaid')->get();
-            foreach ($feeSlips as $slip) {
-                // Update slip status
-                $slip->status = 'expire';
-                $slip->save();
-
-                // Add payable to student's account dues
-                $account = Account::where('student_id', $slip->student_id)->first();
-                if ($account) {
-                    $account->dues = ($account->dues ?? 0) + ($slip->payable ?? 0);
-                    $account->save();
-                }
-            }
-        }
-
-        return response()->json(['message' => 'Unpaid fee slips expired and Dues updated.'], 200);
-    }
 
     
 
@@ -313,26 +286,30 @@ class FeeController extends Controller
         $challan_number = $this->lastChallanNumberFinder(); // Get Last Fee Slip Chalan Number From FeeSlips Table
         $isMonthly = ($data['type'] ?? null) === 'monthly';
 
-
         foreach ($data['fee_slips'] as $slip) {
-
-            $challan_number++; 
-
-            $slip['challan_number'] = $challan_number; 
-
             $slip['type'] = $data['type']; // Ensure 'type' is set for each slip
+            $slip = $this->calculateTotalAndPayable($slip, $isMonthly);
 
-            $slip = $this->calculateTotalAndPayable($slip, $isMonthly); 
+            // Check if fee slip already exists for this fee_id and student_id
+            $existingSlip = $fee->feeSlips()->where('student_id', $slip['student_id'])->first();
 
-            $createdFeeSlips[] = $fee->feeSlips()->create($slip);
-
+            if ($existingSlip) {
+                // Update existing slip
+                $existingSlip->fill($slip);
+                $existingSlip->save();
+                $createdFeeSlips[] = $existingSlip;
+            } else {
+                // Create new slip with new challan number
+                $challan_number++;
+                $slip['challan_number'] = $challan_number;
+                $createdFeeSlips[] = $fee->feeSlips()->create($slip);
+            }
         }
 
         return response()->json([
-            'message' => 'Fee slips added successfully.',
+            'message' => 'Fee slips added/updated successfully.',
             'fee_slips' => $createdFeeSlips,
         ], 201);
-
     }
 
 
@@ -534,13 +511,13 @@ class FeeController extends Controller
     {
         return Validator::make($request->all(), [
             'id' => 'required|exists:fee_slips,id',
-            'amount' => 'required|numeric|min:0.01',
+            'amount' => 'required|numeric|min:1',
         ], [
             'id.required' => 'The fee slip ID is required.',
             'id.exists' => 'The selected fee slip does not exist.',
             'amount.required' => 'The amount is required.',
             'amount.numeric' => 'The amount must be a number.',
-            'amount.min' => 'The amount must be at least 0.01.',
+            'amount.min' => 'The amount must be at least 1.',
         ]);
     }
 
@@ -624,7 +601,7 @@ class FeeController extends Controller
         if ($isMonthly && isset($slip['student_id'])) {
             $account = Account::where('student_id', $slip['student_id'])->first();
             if ($account) {
-                $d0ues = $account->dues ?? 0;
+                $dues = $account->dues ?? 0;
                 $fine = $account->fine ?? 0;
                 $discount = $account->discount ?? 0;
             }
@@ -636,7 +613,7 @@ class FeeController extends Controller
 
 
         // Payable = total - discount - fine - dues, but not less than 0
-        $payable = $total - $discount - $fine - $dues;
+        $payable = ($total  + $fine + $dues) - $discount;
         $payable = $payable < 0 ? 0 : $payable;
 
         $slip['total'] = $total;
@@ -644,6 +621,7 @@ class FeeController extends Controller
         $slip['fine'] = $fine;
         $slip['dues'] = $dues;
         $slip['payable'] = $payable;
+        $slip['remaining_amount'] = $payable;
 
         return $slip;
     }

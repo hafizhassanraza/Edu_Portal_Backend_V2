@@ -1,9 +1,10 @@
 <?php
 
 namespace App\Http\Controllers\Api;
-
+use Illuminate\Support\Facades\Validator;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+
 use App\Models\Student;
 use App\Models\FeeSlip;
 use App\Models\Guardian;
@@ -11,11 +12,181 @@ use App\Models\Enrollment;
 use App\Models\MyClass;
 use App\Models\Section;
 use App\Models\Account;
-use Illuminate\Support\Facades\Validator;
+use App\Models\Extra;
+use App\Models\Fee;
+use App\Models\FeeStructure;
+use App\Models\Attendance;
 
 class StudentController extends Controller
 {
 
+
+
+    public function updateStudentAccount(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'student_id' => 'required|exists:students,id',
+            'fine' => 'nullable|numeric|min:0',
+            'dues' => 'nullable|numeric|min:0',
+            'discount_type' => 'nullable|string|max:50',
+            'discount_amount' => 'nullable|numeric|min:0',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        $student = Student::with('account')->find($request->student_id);
+
+        if (!$student || !$student->account) {
+            return response()->json(['error' => 'Student account not found.'], 404);
+        }
+
+        $student->account->update([
+            'fine' => $request->fine,
+            'dues' => $request->dues,
+            'discount_type' => $request->discount_type,
+            'discount_amount' => $request->discount_amount,
+        ]);
+
+        return response()->json([
+            'message' => 'Student account updated successfully.',
+            'account' => $student->account,
+        ]);
+    }
+
+    
+
+
+    public function getAccountWithFeeStructure($student_id)
+    {
+        if (!$student_id) return response()->json(['error' => 'Student ID is required.'], 400);
+        $student = Student::with(['account', 'myClass.feeStructure'])->find($student_id);
+
+
+        if (!$student || !$student->account) {
+            return response()->json(['error' => 'Account or student not found.'], 404);
+        }
+
+
+        $feeStructure = $student->myClass->feeStructure;
+
+        return response()->json([
+            'account' => $student->account,
+            'fee_structure' => $feeStructure,
+        ]);
+    }
+
+
+
+    public function getFeeHistory(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'student_id' => 'required|exists:students,id',
+            'month' => 'required|string',
+            'year' => 'required|integer|min:2000',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        $student = Student::with('enrollment')->find($request->student_id);
+
+        if (!$student || !$student->enrollment) return response()->json(['error' => 'Student or enrollment not found.'], 404);
+        
+
+        $class_id = $student->enrollment->class_id;
+        $section_id = $student->enrollment->section_id;
+
+        $fees = Fee::where('class_id', $class_id)
+            ->where('section_id', $section_id)
+            ->where('month', $request->month)
+            ->where('year', $request->year)
+            ->where('type', 'monthly')
+            ->get();
+
+        $result = [];
+
+        foreach ($fees as $fee) {
+            $slips = FeeSlip::where('fee_id', $fee->id)
+                ->where('student_id', $student->id)
+                ->get();
+            $result[] = [
+                'fee' => $fee,
+                'fee_slips' => $slips,
+            ];
+        }
+
+        return response()->json([
+            'fees' => $result,
+        ]);
+    }
+
+
+    public function getMonthlyStatus(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'student_id' => 'required|exists:students,id',
+            'year' => 'required|integer|min:2000',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        $student = Student::with('enrollment')->find($request->student_id);
+
+        if (!$student || !$student->enrollment) {
+            return response()->json(['error' => 'Student or enrollment not found.'], 404);
+        }
+
+        $class_id = $student->enrollment->class_id;
+        $section_id = $student->enrollment->section_id;
+        $year = $request->year;
+
+        $months = [
+            'January', 'February', 'March', 'April', 'May', 'June',
+            'July', 'August', 'September', 'October', 'November', 'December'
+        ];
+
+        $monthlyStatus = [];
+
+        foreach ($months as $month) {
+            $fee = Fee::where('class_id', $class_id)
+                ->where('section_id', $section_id)
+                ->where('month', $month)
+                ->where('year', $year)
+                ->where('type', 'monthly')
+                ->first();
+
+            $feeSlip = null;
+            $status = 'not_generated';
+
+            if ($fee) {
+                $feeSlip = FeeSlip::where('fee_id', $fee->id)
+                    ->where('student_id', $student->id)
+                    ->first();
+
+                if ($feeSlip) {
+                    $status = $feeSlip->status; // e.g., 'paid', 'unpaid', etc.
+                } else {
+                    $status = 'not_issued';
+                }
+            }
+
+            $monthlyStatus[] = [
+                'month' => $month,
+                'fee' => $fee,
+                'fee_slip' => $feeSlip,
+                'status' => $status,
+            ];
+        }
+
+        return response()->json([
+            'monthly_status' => $monthlyStatus,
+        ]);
+    }
 
 
     public function getStudentById($id)

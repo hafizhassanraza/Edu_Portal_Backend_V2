@@ -34,9 +34,16 @@ class Student extends Model
     {
         return $this->belongsToMany(Section::class, 'enrollments', 'student_id', 'section_id');
     }
-    public function classes()
+    public function myClass()
     {
-        return $this->belongsToMany(MyClass::class, 'enrollments', 'student_id', 'class_id');
+        return $this->hasOneThrough(
+            MyClass::class,
+            Enrollment::class,
+            'student_id', // Foreign key on enrollments table...
+            'id',         // Foreign key on my_classes table...
+            'id',         // Local key on students table...
+            'class_id'    // Local key on enrollments table...
+        );
     }
     public function enrollment()
     {
@@ -68,6 +75,16 @@ class Student extends Model
     public function resultRecords()
     {
         return $this->hasMany(ResultRecord::class, 'student_id');
+    }
+
+    /* public function class()
+    {
+        return $this->enrollment()->with('myClass');
+    } */
+
+    public function feeStructure()
+    {
+        return $this->myClass()->with('feeStructure');
     }
 
 

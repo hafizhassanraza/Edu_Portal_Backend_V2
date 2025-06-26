@@ -57,9 +57,13 @@ Route::get('guardian-by-studentID/{student_id}', [StudentController::class, 'get
 Route::post('add-guardian', [StudentController::class, 'addGuardian']);
 Route::post('add-enrollment', [StudentController::class, 'addEnrollment']);
 Route::post('add-extra', [StudentController::class, 'addExtra']);
-Route::post('students-by-section', [StudentController::class, 'getStudentsByClassAndSection']);
 Route::get('student-by-reg-number/{reg_number}', [StudentController::class, 'getStudentByRegNumber']);
 Route::get('student-by-id/{id}', [StudentController::class, 'getStudentById']);
+Route::get('student/account/{student_id}', [StudentController::class, 'getAccountWithFeeStructure']);
+Route::post('students/by-section', [StudentController::class, 'getStudentsByClassAndSection']);
+Route::post('student/account/history/slip', [StudentController::class, 'getFeeHistory']);
+Route::post('student/account/history', [StudentController::class, 'getMonthlyStatus']);
+Route::post('student/account/update', [StudentController::class, 'updateStudentAccount']);
 // Student routes End
 
 
@@ -67,20 +71,22 @@ Route::get('student-by-id/{id}', [StudentController::class, 'getStudentById']);
 Route::post('attendance/store', [AttendanceController::class, 'store']);
 Route::post('attendance/by-date', [AttendanceController::class, 'getByDate']);
 Route::post('attendance/records/by-id', [AttendanceController::class, 'recordsByAttendanceId']);
-
 // Attendance routes End
 
 
 // Accounts routes Start
-Route::post('add-fee-slips', [FeeController::class, 'addFeeSlips']);
-Route::get('fee-slip-by-challan/{challan_no}', [FeeController::class, 'getFeeSlipByChallan']);
-Route::post('pay-fee-slip', [FeeController::class, 'payFeeSlip']);
-Route::post('add-fee-structure', [FeeController::class, 'addFeeStructure']);
-Route::get('fee-structures', [FeeController::class, 'getFeeStructures']);
-Route::post('get-Fee-Slips', [FeeController::class, 'getFeeSlips']);
-Route::post('fees-summary', [FeeController::class, 'getFeesSummary']);
-Route::post('expire-Fee-Slips', [FeeController::class, 'expireFeeSlips']);
-Route::get('pending-student/{id}', [StudentController::class, 'getPendingStudentById']);
+
+Route::post('fee/structure/add', [FeeController::class, 'addFeeStructure']);
+Route::get('fee/structures/get', [FeeController::class, 'getFeeStructures']);
+Route::post('fee/challan/pay', [FeeController::class, 'payFeeSlip']);
+Route::post('fee/challans/add', [FeeController::class, 'addFeeSlips']);
+Route::post('fee/challans/by-class', [FeeController::class, 'getFeeSlips']);
+Route::post('fee/challans/expire', [FeeController::class, 'expireFeeSlips']);
+Route::get('fee/challan/get/{challan_no}', [FeeController::class, 'getFeeSlipByChallan']);
+Route::post('fee/summary/get', [FeeController::class, 'getFeesSummary']);
+
+//Route::get('pending-student/{id}', [StudentController::class, 'getPendingStudentById']);
+
 // Accounts routes End
 
 // Academic routes Start

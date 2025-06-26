@@ -104,6 +104,9 @@ class ExamController extends Controller
             'result_records' => $records,
         ]);
     }
+    
+
+
 
     // Validator for getResultRecordsByResultId
     protected function validateGetResultRecordsRequest(Request $request)
@@ -116,6 +119,8 @@ class ExamController extends Controller
             'result_id.exists' => 'Result not found.',
         ]);
     }
+
+
 
 
 
@@ -144,14 +149,11 @@ class ExamController extends Controller
 
     public function store(Request $request)
     {
-        $validated = $this->validateResultData($request);
+        $validator = $this->validateResultData($request);
 
+
+        if ($validator->fails()) return response()->json(['errors' => $validator->errors()], 422);
         
-        if ($validator->fails()) {
-            return response()->json([
-                'errors' => $validator->errors()
-            ], 422);
-        }
         $validated = $validator->validated();
 
         // Check if result already exists for the given class, section, subject, exam, term, year
@@ -231,8 +233,25 @@ class ExamController extends Controller
     // Unified validator for Result and Result Records (array)
     protected function validateResultData(Request $request)
     {
-        // Custom error messages
-        $messages = [
+        return Validator::make($request->all(), [
+            'class_id' => 'required|integer|exists:my_classes,id',
+            'section_id' => 'required|integer|exists:sections,id',
+            'subject_id' => 'required|integer|exists:subjects,id',
+            'employee_id' => 'required|integer|exists:employees,id',
+            'exam' => 'required|string|max:100',
+            'term' => 'required|string|max:50',
+            'year' => 'required|integer|min:2000|max:2100',
+            'total_marks' => 'required|numeric|min:0',
+            'passing_marks' => 'required|numeric|min:0|max:' . $request->input('total_marks'),
+            'result_records' => 'required|array|min:1',
+            'result_records.*.result_id' => 'nullable|integer|exists:results,id',
+            'result_records.*.student_id' => 'required|integer|exists:students,id',
+            'result_records.*.marks_obtained' => 'required|numeric|min:0|max:' . $request->input('total_marks'),
+            'result_records.*.total_marks' => 'required|numeric|min:0',
+            'result_records.*.grade' => 'nullable|string|max:5',
+            'result_records.*.remarks' => 'nullable|string|max:255',
+            'result_records.*.attendance_status' => 'nullable|in:present,absent,leave',
+        ], [
             'class_id.required' => 'Class is required.',
             'class_id.exists' => 'Selected class does not exist.',
             'section_id.required' => 'Section is required.',
@@ -274,30 +293,7 @@ class ExamController extends Controller
             'result_records.*.grade.max' => 'Grade must not exceed 5 characters.',
             'result_records.*.remarks.max' => 'Remarks must not exceed 255 characters.',
             'result_records.*.attendance_status.in' => 'Attendance status must be present, absent, or leave.',
-        ];
-
-        // Validate the main result fields
-        $validated = $request->validate([
-            'class_id' => 'required|integer|exists:my_classes,id',
-            'section_id' => 'required|integer|exists:sections,id',
-            'subject_id' => 'required|integer|exists:subjects,id',
-            'employee_id' => 'required|integer|exists:employees,id',
-            'exam' => 'required|string|max:100',
-            'term' => 'required|string|max:50',
-            'year' => 'required|integer|min:2000|max:2100',
-            'total_marks' => 'required|numeric|min:0',
-            'passing_marks' => 'required|numeric|min:0|max:' . $request->input('total_marks'),
-            'result_records' => 'required|array|min:1',
-            'result_records.*.result_id' => 'nullable|integer|exists:results,id',
-            'result_records.*.student_id' => 'required|integer|exists:students,id',
-            'result_records.*.marks_obtained' => 'required|numeric|min:0|max:' . $request->input('total_marks'),
-            'result_records.*.total_marks' => 'required|numeric|min:0',
-            'result_records.*.grade' => 'nullable|string|max:5',
-            'result_records.*.remarks' => 'nullable|string|max:255',
-            'result_records.*.attendance_status' => 'nullable|in:present,absent,leave',
-        ], $messages);
-
-        return $validated;
+        ]);
     }
     
 
