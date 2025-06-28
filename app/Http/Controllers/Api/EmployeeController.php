@@ -100,6 +100,96 @@ class EmployeeController extends Controller
     Note: 'year_of_passing' must be an integer between 1900 and the current year (e.g., 2024).
     */
 
+    public function assignInchargeToSection(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'employee_id' => 'required|exists:employees,id',
+            'class_id'    => 'required|exists:my_classes,id',
+            'section_id'  => 'required|exists:sections,id',
+        ], [
+            'employee_id.required' => 'Employee ID is required.',
+            'employee_id.exists'   => 'Employee not found.',
+            'class_id.required'    => 'Class ID is required.',
+            'class_id.exists'      => 'Class not found.',
+            'section_id.required'  => 'Section ID is required.',
+            'section_id.exists'    => 'Section not found.',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        $validated = $validator->validated();
+
+        // Assuming Employee has a hasOne relation 'incharge' to a model (e.g., Incharge)
+        $employee = Employee::findOrFail($validated['employee_id']);
+
+        // Remove previous incharge assignment for this section if exists
+        $employee->incharge()->updateOrCreate(
+            ['section_id' => $validated['section_id']],
+            [
+                'class_id'    => $validated['class_id'],
+                'section_id'  => $validated['section_id'],
+                'employee_id' => $validated['employee_id'],
+            ]
+        );
+
+        return response()->json([
+            'message' => 'Incharge assigned to section successfully'
+        ]);
+    }
+
+
+    public function getIncharge()
+    {
+        $incharges = Employee::where('status', 'active')
+            ->whereHas('incharge')
+            ->with(['incharge.class', 'incharge.section'])
+            ->orderBy('full_name')
+            ->get();
+
+        return response()->json(['incharges' => $incharges]);
+    }
+
+    public function getInchargeByEmployeeId($id)
+    {
+        $employee = Employee::where('status', 'active')
+            ->where('id', $id)
+            ->whereHas('incharge')
+            ->with(['incharge.class', 'incharge.section'])
+            ->first();
+
+        if (!$employee) {
+            return response()->json(['error' => 'employee not found'], 404);
+        }
+
+        return response()->json(['employee' => $employee]);
+    }
+
+    public function getSubjectsByEmployeeId($id)
+    {
+        $employee = Employee::where('status', 'active')
+            ->where('id', $id)
+            ->with(['sectionSubjects.subject', 'sectionSubjects.section', 'sectionSubjects.myClass'])
+            ->first();
+
+        if (!$employee) {
+            return response()->json(['error' => 'Employee not found'], 404);
+        }
+
+        $subjectsWithSections = $employee->sectionSubjects->map(function ($sectionSubject) {
+            return [
+                'subject' => $sectionSubject->subject,
+                'section' => $sectionSubject->section,
+                'class'   => $sectionSubject->myClass ,
+            ];
+        })->filter(function ($item) {
+            return $item['subject'] && $item['section'] && $item['class'];
+        })->values();
+
+        return response()->json(['subjects' => $subjectsWithSections]);
+    }
+
     protected function validateGetQualifications(Request $request)
     {
         return Validator::make($request->all(), [

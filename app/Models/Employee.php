@@ -39,6 +39,52 @@ class Employee extends Model
         return $this->hasOne(EmployeeQualification::class, 'employee_id', 'id');// Assuming the table name is 'employee_qualifications'. and the foreign key in the qualifications table is 'employee_id'.                                                                        
     }
 
+    
+
+    public function teacher()
+    {
+        return $this->hasOne(EmployeeQualification::class, 'employee_id', 'id')->where('role', 'teacher');
+    }
+
+    public function teacherSection()
+    {
+        return $this->hasOne(EmployeeQualification::class, 'employee_id', 'id')
+            ->where('role', 'teacher')
+            ->with('section');
+    }
+
+    public function incharge()
+    {
+        return $this->hasOne(Incharge::class, 'employee_id', 'id')
+            ->with('class', 'section');
+    }
+
+    public function sectionSubjects()
+    {
+        return $this->hasMany(SectionSubject::class, 'employee_id', 'id')
+            ->with('subject');
+    }
+
+
+
+    
+
+
+    
+
+   
+
+
+
+
+
+
+
+    
+
+
+
+
 
 
 }

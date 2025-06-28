@@ -38,6 +38,16 @@ class SectionSubject extends Model
         return $this->belongsTo(Employee::class, 'employee_id');
     }
 
+    public function section()
+    {
+        return $this->belongsTo(Section::class, 'section_id');
+    }
+
+    public function myClass()
+    {
+        return $this->belongsTo(MyClass::class, 'class_id');
+    }
+
 
 
 }
