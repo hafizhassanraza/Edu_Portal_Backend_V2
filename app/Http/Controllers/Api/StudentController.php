@@ -16,10 +16,224 @@ use App\Models\Extra;
 use App\Models\Fee;
 use App\Models\FeeStructure;
 use App\Models\Attendance;
+use App\Models\AttendanceRecord;
+use App\Models\Result;
+use App\Models\ResultRecord;
+
 
 class StudentController extends Controller
 {
 
+
+
+    /* public function getResultsByTerm(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'student_id' => 'required|exists:students,id',
+            'term' => 'required|string|max:50',
+            'year' => 'required|integer|min:2000',
+            'exam' => 'required|string|max:100',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        $student = Student::with('enrollment')->find($request->student_id);
+
+        if (!$student || !$student->enrollment) {
+            return response()->json(['error' => 'Student or enrollment not found.'], 404);
+        }
+
+        $section_id = $student->enrollment->section_id;
+
+        // Get all subjects for the section
+        $section = Section::with('subjects')->find($section_id);
+        if (!$section) {
+            return response()->json(['error' => 'Section not found.'], 404);
+        }
+        $subjects = $section->subjects;
+
+        // Fetch results for each subject
+        $results = [];
+        foreach ($subjects as $subject) {
+            //$result = Result::where('student_id', $student->id)
+            $result = Result::where('subject_id', $subject->id)
+                ->where('term', $request->term)
+                ->where('year', $request->year)
+                ->where('exam', $request->exam)
+                ->first();
+
+            $results[] = [
+                'subject' => $subject,
+                'result' => $result,
+            ];
+        }
+
+        return response()->json([
+            'student_id' => $student->id,
+            'term' => $request->term,
+            'year' => $request->year,
+            'exam' => $request->exam,
+            'results' => $results,
+        ]);
+    } */
+
+
+    public function getResultsByTerm(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'student_id' => 'required|exists:students,id',
+            'term' => 'required|string|max:50',
+            'year' => 'required|integer|min:2000',
+            'exam' => 'required|string|max:100',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        $student = Student::with('enrollment')->find($request->student_id);
+
+        if (!$student || !$student->enrollment) {
+            return response()->json(['error' => 'Student or enrollment not found.'], 404);
+        }
+
+        $section_id = $student->enrollment->section_id;
+
+        // Get all subjects for the section
+        $section = Section::with('subjects')->find($section_id);
+        if (!$section) {
+            return response()->json(['error' => 'Section not found.'], 404);
+        }
+        $subjects = $section->subjects;
+
+        // Fetch results and result records for each subject
+        $results = [];
+        foreach ($subjects as $subject) {
+            $result = Result::where('subject_id', $subject->id)
+                ->where('term', $request->term)
+                ->where('year', $request->year)
+                ->where('exam', $request->exam)
+                ->first();
+
+            $resultRecord = null;
+            if ($result) {
+                $resultRecord = ResultRecord::where('result_id', $result->id)
+                    ->where('student_id', $student->id)
+                    ->first();
+            }
+
+            $results[] = [
+                'subject' => $subject,
+                'result' => $result,
+                'result_record' => $resultRecord,
+            ];
+        }
+
+        return response()->json([
+            'student_id' => $student->id,
+            'term' => $request->term,
+            'year' => $request->year,
+            'exam' => $request->exam,
+            'results' => $results,
+        ]);
+    }
+
+
+    public function getAttendanceByDate(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'student_id' => 'required|exists:students,id',
+            'date' => 'required|date',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        $student = Student::with('enrollment')->find($request->student_id);
+
+        if (!$student || !$student->enrollment) {
+            return response()->json(['error' => 'Student or enrollment not found.'], 404);
+        }
+
+        $class_id = $student->enrollment->class_id;
+        $section_id = $student->enrollment->section_id;
+
+        $attendance = Attendance::where('class_id', $class_id)
+            ->where('section_id', $section_id)
+            ->where('date', $request->date)
+            ->first();
+
+        if (!$attendance) {
+            return response()->json(['error' => 'Attendance record not found.'], 404);
+        }
+
+        $attendanceRecord = AttendanceRecord::where('attendance_id', $attendance->id)
+            ->where('student_id', $student->id)
+            ->first();
+
+        return response()->json([
+            'attendance' => $attendance,
+            'attendance_record' => $attendanceRecord,
+        ]);
+    }
+
+
+    public function getMonthlyAttendance(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'student_id' => 'required|exists:students,id',
+            'month' => 'required|integer|min:1|max:12',
+            'year' => 'required|integer|min:2000',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        $student = Student::with('enrollment')->find($request->student_id);
+
+        if (!$student || !$student->enrollment) {
+            return response()->json(['error' => 'Student or enrollment not found.'], 404);
+        }
+
+        $class_id = $student->enrollment->class_id;
+        $section_id = $student->enrollment->section_id;
+        $year = $request->year;
+        $month = $request->month;
+
+        $startDate = \Carbon\Carbon::create($year, $month, 1)->startOfMonth();
+        $endDate = (clone $startDate)->endOfMonth();
+
+        $attendances = Attendance::where('class_id', $class_id)
+            ->where('section_id', $section_id)
+            ->whereBetween('date', [$startDate->toDateString(), $endDate->toDateString()])
+            ->orderBy('date')
+            ->get();
+
+        $attendanceData = [];
+
+        foreach ($attendances as $attendance) {
+            $attendanceRecord = AttendanceRecord::where('attendance_id', $attendance->id)
+                ->where('student_id', $student->id)
+                ->first();
+
+            $attendanceData[] = [
+                'date' => $attendance->date,
+                'attendance' => $attendance,
+                'attendance_record' => $attendanceRecord,
+            ];
+        }
+
+        return response()->json([
+            'student_id' => $student->id,
+            'month' => $month,
+            'year' => $year,
+            'attendance' => $attendanceData,
+        ]);
+    }
 
 
     public function updateStudentAccount(Request $request)

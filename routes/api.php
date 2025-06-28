@@ -40,30 +40,38 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 
 
 //Class-Section routes Start
-Route::post('add-section', [ClassController::class, 'addSection']);
-Route::post('add-class', [ClassController::class, 'addClass']);
-Route::get('sections', [ClassController::class, 'getSections']);
-Route::get('classes', [ClassController::class, 'getClasses']);
-Route::get('class-by-id/{id}', [ClassController::class, 'getClassByID']);
-Route::get('section-by-id/{id}', [ClassController::class, 'getSectionByID']);
-Route::get('sections-by-classID/{id}', [ClassController::class, 'getSectionsByClassID']);
+Route::post('section/add', [ClassController::class, 'addSection']);
+Route::post('class/add', [ClassController::class, 'addClass']);
+Route::get('sections/get', [ClassController::class, 'getSections']);
+Route::get('classes/get', [ClassController::class, 'getClasses']);
+Route::get('class/get/by-id/{id}', [ClassController::class, 'getClassByID']);
+Route::get('section/get/by-id/{id}', [ClassController::class, 'getSectionByID']);
+Route::get('sections/get/by-classID/{id}', [ClassController::class, 'getSectionsByClassID']);
 //Class-Section routes End
 
 
+
 // Student routes Start
-Route::post('add-student', [StudentController::class, 'addStudent']);
-Route::get('pending-students', [StudentController::class, 'getPendingStudents']);
-Route::get('guardian-by-studentID/{student_id}', [StudentController::class, 'getGuardianByStudentID']);
-Route::post('add-guardian', [StudentController::class, 'addGuardian']);
-Route::post('add-enrollment', [StudentController::class, 'addEnrollment']);
-Route::post('add-extra', [StudentController::class, 'addExtra']);
-Route::get('student-by-reg-number/{reg_number}', [StudentController::class, 'getStudentByRegNumber']);
-Route::get('student-by-id/{id}', [StudentController::class, 'getStudentById']);
+Route::post('student/add', [StudentController::class, 'addStudent']);
+Route::get('students/get/pending', [StudentController::class, 'getPendingStudents']);
+Route::post('student/guardian/add', [StudentController::class, 'addGuardian']);
+Route::post('student/extra/add', [StudentController::class, 'addExtra']);
+Route::post('student/enrollment/add', [StudentController::class, 'addEnrollment']);
+Route::get('student/get/by-id/{id}', [StudentController::class, 'getStudentById']);
+Route::get('student/get/by-reg/{reg_number}', [StudentController::class, 'getStudentByRegNumber']);
+Route::get('student/guardian/get/by-studentID/{student_id}', [StudentController::class, 'getGuardianByStudentID']);
+Route::post('students/get/by-section', [StudentController::class, 'getStudentsByClassAndSection']);
+
 Route::get('student/account/{student_id}', [StudentController::class, 'getAccountWithFeeStructure']);
-Route::post('students/by-section', [StudentController::class, 'getStudentsByClassAndSection']);
 Route::post('student/account/history/slip', [StudentController::class, 'getFeeHistory']);
 Route::post('student/account/history', [StudentController::class, 'getMonthlyStatus']);
 Route::post('student/account/update', [StudentController::class, 'updateStudentAccount']);
+
+Route::post('student/attendance/by-date', [StudentController::class, 'getAttendanceByDate']);
+Route::post('student/attendance/monthly', [StudentController::class, 'getMonthlyAttendance']);
+
+Route::post('student/results/by-term', [StudentController::class, 'getResultsByTerm']);
+
 // Student routes End
 
 
