@@ -405,7 +405,7 @@ class StudentController extends Controller
 
     public function getStudentById($id)
     {
-        $student = Student::with(['guardian', 'enrollment'])->find($id);
+        $student = Student::with(['guardian', 'enrollment','extras'])->find($id);
 
         if (!$student) {
             return response()->json(['error' => 'Student not found.'], 404);
