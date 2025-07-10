@@ -445,7 +445,7 @@ class StudentController extends Controller
             $query->where('class_id', $request->class_id)
                   ->where('section_id', $request->section_id)
                   ->where('status', 'active');
-        })->with(['guardian', 'enrollment'])->get();
+        })->with(['guardian', 'enrollment' , 'account'])->get();
 
         return response()->json([
             'students' => $students,
