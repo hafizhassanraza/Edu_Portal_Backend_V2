@@ -63,8 +63,11 @@ class AcademicController extends Controller
     protected function validateGetAssignedSubjectsBySection(Request $request)
     {
         return Validator::make($request->all(), [
+            'class_id' => 'required|exists:my_classes,id',
             'section_id' => 'required|exists:sections,id',
         ], [
+            'class_id.required' => 'Class is required.',
+            'class_id.exists' => 'Selected class does not exist.',
             'section_id.required' => 'Section is required.',
             'section_id.exists' => 'Selected section does not exist.',
         ]);
@@ -146,6 +149,7 @@ class AcademicController extends Controller
         $validated = $validator->validated();
 
         $assignments = SectionSubject::with(['subject', 'employee'])
+            ->where('class_id', $validated['class_id'])
             ->where('section_id', $validated['section_id'])
             ->get();
 
