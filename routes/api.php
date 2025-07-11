@@ -113,6 +113,7 @@ Route::post('employee/qualification/get', [EmployeeController::class, 'getQualif
 Route::get('teachers/get', [EmployeeController::class, 'getTeachers']);
 
 Route::post('employee/incharge/assign', [EmployeeController::class, 'assignInchargeToSection']);
+Route::get('employee/incharge/get/all', [EmployeeController::class, 'getIncharge']);
 Route::get('employee/incharge/get/{employee_id}', [EmployeeController::class, 'getInchargeByEmployeeId']);
 Route::get('employee/subjects/get/{employee_id}', [EmployeeController::class, 'getSubjectsByEmployeeId']);
 // Employee routes End
