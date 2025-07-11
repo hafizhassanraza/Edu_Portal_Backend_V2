@@ -555,6 +555,11 @@ class StudentController extends Controller
 
         // Check if fee slip is paid
         if ($feeSlip->status !== 'paid') return response()->json(['error' => 'Fee slip must be paid before enrollment.'], 422);
+        //check if fee slip is already used for any other enrollment
+        if (Enrollment::where('fee_slip_id', $feeSlip->id)->exists()) {
+            return response()->json(['error' => 'This fee slip has already been used for enrollment.'], 422);
+        }
+
 
         // Get next registration number
         $regNumber = $this->getNextRegNumber();
