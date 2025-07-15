@@ -458,7 +458,7 @@ class StudentController extends Controller
             'guardian',
             'extras',
             'feeSlips' => function ($query) {
-                $query->where('type', 'admission')->latest()->limit(1);
+                $query->where('type', 'admission');
             }
         ])->get();
 
@@ -473,7 +473,7 @@ class StudentController extends Controller
             'guardian',
             'extras',
             'feeSlips' => function ($query) {
-                $query->where('type', 'admission')->latest()->limit(1);
+                $query->where('type', 'admission');
             }
         ])->first();
 
